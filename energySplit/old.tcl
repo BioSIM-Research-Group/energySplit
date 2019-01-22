@@ -1,9 +1,10 @@
+
 # Global variables
 global pi numberAtoms parameters types charges connectivity xyz
 
 set ::tcl_precision 17
 
-# Connectivity
+# Collect Connectivity from VMD
 proc connectivityFromVMD {} {
     global numberAtoms
     set connect {}
@@ -18,6 +19,7 @@ proc connectivityFromVMD {} {
     return $connect
 }
 
+# Defining initial variables
 proc variables {} {
     global pi numberAtoms parameters types charges connectivity xyz totalEnergy
     # set pi
@@ -430,28 +432,28 @@ proc tempo {time0 time1} {
    return $timeDiff
 }
 
-############### Start
-set time0 [clock format [clock seconds] -format "%Hh %Mm %Ss   %d %b %y"]
-puts "## Preparing system..."
-variables
-puts "Done!\n"
-puts "## Calculating energy of bonds..."
-bonds
-puts "Done!\n"
-puts "## Calculating energy of angles and dihedral angles..."
-anglesDihedrals
-puts "Done!\n"
-puts "## Calculating energy of impropers..."
-impropers
-puts "Done!\n"
-puts "## Calculating energy of non-bond interactions (Coulomb and VDW)..."
-nonBondMultiCore
-puts "Done!\n"
-set time1 [clock format [clock seconds] -format "%Hh %Mm %Ss   %d %b %y"]
-puts "#####\n#####\n"
-puts "Total Energy: $totalEnergy hartree | [expr $totalEnergy * 627.50947415151515] kcal/mol\nCalculation time: [tempo $time0 $time1]"
-puts "\n#####\n#####"
-################ End
+# ############### Start
+# set time0 [clock format [clock seconds] -format "%Hh %Mm %Ss   %d %b %y"]
+# puts "## Preparing system..."
+# variables
+# puts "Done!\n"
+# puts "## Calculating energy of bonds..."
+# bonds
+# puts "Done!\n"
+# puts "## Calculating energy of angles and dihedral angles..."
+# anglesDihedrals
+# puts "Done!\n"
+# puts "## Calculating energy of impropers..."
+# impropers
+# puts "Done!\n"
+# puts "## Calculating energy of non-bond interactions (Coulomb and VDW)..."
+# nonBondMultiCore
+# puts "Done!\n"
+# set time1 [clock format [clock seconds] -format "%Hh %Mm %Ss   %d %b %y"]
+# puts "#####\n#####\n"
+# puts "Total Energy: $totalEnergy hartree | [expr $totalEnergy * 627.50947415151515] kcal/mol\nCalculation time: [tempo $time0 $time1]"
+# puts "\n#####\n#####"
+# ################ End
 
 proc bondsFrag {selection} {
     global pi numberAtoms parameters types charges totalEnergy
@@ -875,120 +877,10 @@ proc nonBondMultiCoreFrag {selection} {
 
 }
 
-bondsFrag "index 1 to 10"
-anglesDihedralsFrag "index 1 to 10"
-impropersFrag "index 1 to 10"
-nonBondMultiCoreFrag "index 1 to 10"
-
-# proc nonbond {atomStart atomEnd} {
-#     global pi parameters numberAtoms types charges connectivity xyz
-
-#     ## Get VDW
-#     set vdwParam {}
-#     foreach line $parameters {
-#         set var [regexp -inline {VDW\s+"(\S+)"\s+(\S+)\s+(\S+)} $line]
-#         if {$var == ""} {
-#             continue
-#         } else {
-#             lappend vdwParam [lrange $var 1 3]
-#         }
-#     }
-
-#     set vdwEnergy 0
-#     set coloumbEnergy 0
-#     for {set i $atomStart} { $i < $atomEnd } { incr i } {
-#         # Get atoms 1-2 bonds away
-#         set scale083Atoms {}
-#         set scale0Atoms {}
-
-#         # set sel [atomselect top "index $i"]
-#         set typei [lindex $types $i]
-#         set chargei [lindex $charges $i]
-#         set atoms1 [lindex $connectivity $i]
-#         set scale0Atoms [concat $scale0Atoms $atoms1]
-#         # $sel delete
-
-#         foreach atom $atoms1 {
-#             # set sel1 [atomselect top "index $atom"]
-#             set atoms2 [lindex $connectivity $atom]
-#             set scale0Atoms [concat $scale0Atoms $atoms2]
-#             # $sel1 delete
-
-#             foreach atom1 $atoms2 {
-#                 if {$atom1 != $i} {
-#                     # set sel2 [atomselect top "index $atom1"]
-#                     set atoms3 [lindex $connectivity $atom1]
-#                     # $sel2 delete
-            
-#                     foreach atom2 $atoms3 {
-#                         if {$atom2 != $i && $atom2 != $atom} {
-#                             lappend scale083Atoms $atom2
-#                         }
-#                     }
-#                 }
-#             }
-#         }
-
-#         set scale0Atoms [lsort -unique $scale0Atoms]
-#         set scale083Atoms [lsort -unique $scale083Atoms]
+# variables
+# bondsFrag "index 1 to 10"
+# anglesDihedralsFrag "index 1 to 10"
+# impropersFrag "index 1 to 10"
+# nonBondMultiCoreFrag "index 1 to 10"
 
 
-#         # set selJ [atomselect top "all within $cutoff of index $i"]
-#         # set listJ [$selJ get index]
-#         # $selJ delete
-
-#         for {set j [expr $i + 1]} { $j < $numberAtoms } { incr j } {
-#             set typej [lindex $types $j]
-#             set chargej [lindex $charges $j]
-
-#             ## VDW
-
-#             set ri 0
-#             set ei 0
-#             set rj 0
-#             set ej 0
-
-#             set atomi [lsearch -index 0 -inline -exact $vdwParam $typei]
-#             if {$atomi == ""} {
-#                 puts "Atom $typei not found"
-#             } else {
-#                 set ri [lindex $atomi 1]
-#                 set ei [lindex $atomi 2]
-#             }
-#             set atomj [lsearch -index 0 -inline -exact $vdwParam $typej]
-#             if {$atomi == ""} {
-#                 puts "Atom $typej not found"
-#             } else {
-#                 set rj [lindex $atomj 1]
-#                 set ej [lindex $atomj 2]
-#             }
-
-#             set rij [expr $ri + $rj]
-#             set eij [expr ($ei * $ej)**(0.5)]
-
-#             set Aij [expr $eij * ($rij)**12]
-#             set Bij [expr 2 * $eij * ($rij)**6]
-
-#             set distance [measure bond [list $i $j]]
-
-#             set energy [expr ($Aij / (($distance)**12)) - ($Bij / (($distance)**6))]
-
-
-#             ## Coulomb
-
-#             set energyCoulomb [expr 332.063712827427 * (($chargei * $chargej) / $distance)]
-
-#             if {[lsearch $scale0Atoms $j] != -1} {
-#                 # Do nothing
-#             } elseif {[lsearch $scale083Atoms $j] != -1} {
-#                 set vdwEnergy [expr $vdwEnergy + ($energy * 0.5)]
-#                 set coloumbEnergy [expr $coloumbEnergy + ($energyCoulomb / 1.2)]
-#             } else {
-#                 set vdwEnergy [expr $vdwEnergy + $energy]
-#                 set coloumbEnergy [expr $coloumbEnergy + $energyCoulomb]
-#             }
-#         }
-#     }
-#     puts "VDW Energy: [expr $vdwEnergy / 627.50947415151515] Hartree | $vdwEnergy kcal/mol"
-#     puts "Coulomb Energy: [expr $coloumbEnergy / 627.50947415151515] Hartree | $coloumbEnergy kcal/mol"
-# }
