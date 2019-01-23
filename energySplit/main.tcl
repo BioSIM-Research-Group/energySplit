@@ -25,5 +25,51 @@ proc energySplit::initialProcedure {listFragments} {
         puts "\nPreparing to start the energy calculation...\n"
     }
 
-    
+    # Convert VMD selections to index lists
+    set fragList {}
+    foreach frag $listFragments {
+        set a [atomselect top "$frag"]
+        lappend fragList [$a get index]
+        $a delete
+    }
+
+
+    # Prepare a input file
+    set fileName "input-energySplit-[clock format [clock seconds] -format %Y%b%d_%H%M%S].tcl"
+    set inputFile [open "$fileName" w]
+
+    # Writting the header of the input file
+    puts $inputFile "###\n### Energy Split v$energySplit::version\n###\n### Developed by: Henrique S. Fernandes (henriquefer11@gmail.com)\n###\n### Input file\n## Date: [clock format [clock seconds] -format %Y%b%d]\n## Hour: [clock format [clock seconds] -format %H:%M:%S]\n## Name: [molinfo top get name]"
+
+    # Setting Variables
+    puts $inputFile "\n## Variables\n"
+    puts $inputFile "set pi [format %.30f [expr {acos(-1)}]]"
+    set all [atomselect top "all"]
+    puts $inputFile "set numberAtoms [$all num]"
+    puts $inputFile "set types [list [$all get type]]"
+    puts $inputFile "set charges [list [$all get charge]]"
+    puts $inputFile "set xyz [list [$all get [list x y z]]]"
+    puts $inputFile "set connectivity [list [energySplit::connectivityFromVMD [$all num]]]"
+    set parameters [split [.molUP.frame0.major.mol[molinfo top].tabs.tabInput.param get 1.0 end] "\n"]
+    puts $inputFile "set parameters [list $parameters]"
+    puts $inputFile "set fragList [list $fragList]"
+    $all delete
+
+    close $inputFile
+
+    # Calculation
+    exec tclsh $::energySplitPath/energySplitCalculation.tcl "$fileName"
+}
+
+proc energySplit::connectivityFromVMD {numberAtoms} {
+    set connect {}
+
+    for {set index 0} { $index < $numberAtoms } { incr index } {
+        set sel [atomselect top "index $index"]
+        set a [$sel getbonds]
+        lappend connect [lindex $a 0]
+        $sel delete
+    }
+
+    return $connect
 }
