@@ -1,5 +1,12 @@
-proc bond {inputFile} {
+source "/scratch/users/hfernandes/BioSIM-repository/energySplit/energySplit/externalLib/linalg.tcl"
+package require math::linearalgebra
 
+global colori colorf
+set colori "\033\[1;33m"
+set colorf "\033\[0m"
+
+proc bond {inputFile} {
+    global colori colorf
     # Read the inputFile. The following variables are set: numberAtoms pi types charges parameters connectivity xyz fragList
     source "$inputFile"
 
@@ -103,7 +110,7 @@ proc bond {inputFile} {
     }
 
     # Calculating the final energy for bonds
-    puts "####################\n## Bonds\n####################"
+    puts "####################\n## $colori Bonds $colorf\n####################"
     puts "\tEnergy Decomposition:"
     set fe 0
     set bondEnergyTable [lsort -index 0 $bondEnergyTable]
@@ -123,36 +130,30 @@ proc bond {inputFile} {
                 set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t"
             }
         }
-        set a [split [lindex $line 0] -]
-        puts "\t\t$description\t[lindex $line 1] Hartree"
+        puts "\t\t$description\t[lindex $line 1]\tHartree"
     }
 
-    puts "\tTotal Energy: $fe Hartree\n"
+    puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
 
 }
 
 proc angleDihedral {inputFile} {
-
-    #fragList is the variable containing a list of all atoms belonging to the fragment
-    set fragList [[atomselect top "$selection"] get index]
+    global colori colorf
+    # Read the inputFile. The following variables are set: numberAtoms pi types charges parameters connectivity xyz fragList
+    source "$inputFile"
 
     set uniqueAngles {}
     set uniqueDihedral {}
+    set angleEnergyTable {}
     for {set index 0} { $index < $numberAtoms } { incr index } {
-        set sel [atomselect top "index $index"]
-        set atoms1 [lindex [$sel getbonds] 0]
-        $sel delete
+        set atoms1 [lindex $connectivity $index]
 
         foreach atom $atoms1 {
-            set sel1 [atomselect top "index $atom"]
-            set atoms2 [lindex [$sel1 getbonds] 0]
-            $sel1 delete
+            set atoms2 [lindex $connectivity $atom]
 
             foreach atom1 $atoms2 {
                 if {$atom1 != $index} {
-                    set sel2 [atomselect top "index $atom1"]
-                    set atoms3 [lindex [$sel2 getbonds] 0]
-                    $sel2 delete
+                    set atoms3 [lindex $connectivity $atom1]
 
                     # Dihedral
                     foreach atom2 $atoms3 {
@@ -192,9 +193,7 @@ proc angleDihedral {inputFile} {
     }
 
     # Calculate energy
-    set angleEnergyFrag 0
-    set angleEnergyInteraction 0
-    set angleEnergyNotFrag 0
+    set angleEnergy 0
     foreach angle $uniqueAngles {
         set parameter ""
         set index0 [lindex $angle 0]
@@ -211,31 +210,162 @@ proc angleDihedral {inputFile} {
         }
 
         if {$parameter != ""} {
-            set teta [measure angle [list $index0 $index1 $index2]]
+            # Getting atom coordinates
+            set xa [lindex [lindex $xyz $index0] 0]
+            set ya [lindex [lindex $xyz $index0] 1]
+            set za [lindex [lindex $xyz $index0] 2]
+            set xb [lindex [lindex $xyz $index1] 0]
+            set yb [lindex [lindex $xyz $index1] 1]
+            set zb [lindex [lindex $xyz $index1] 2]
+            set xc [lindex [lindex $xyz $index2] 0]
+            set yc [lindex [lindex $xyz $index2] 1]
+            set zc [lindex [lindex $xyz $index2] 2]
+
+            # Calculate vectors
+            set xyza [list $xa $ya $za]
+            set xyzb [list $xb $yb $zb]
+            set xyzc [list $xc $yc $zc]
+            set vec0 [::math::linearalgebra::sub $xyza $xyzb]
+            set vec1 [::math::linearalgebra::sub $xyzc $xyzb]
+
+            # Calculate Angle
+            set teta [expr [::math::linearalgebra::angle $vec0 $vec1] * (180/$pi)]
+
             set kangle [lindex [lindex $parameter 0] 3]
             set teta0 [lindex [lindex $parameter 0] 4]
 
-            set energyAngle [expr {((($teta - $teta0)*($pi/180))**2) * $kangle}]
+            # Calculate energy
+            set energy [expr {(((($teta - $teta0)*($pi/180))**2) * $kangle ) / 627.50947415151515}]
 
-            set logic0 [lsearch $fragList $index0]
-            set logic1 [lsearch $fragList $index1]
-            set logic2 [lsearch $fragList $index2]
+            # Check where the atoms $index0 $index1 and $index2 belong
+            set logic0 [lsearch -all -regexp $fragList "(^| )${index0}($| )"]
+            set logic1 [lsearch -all -regexp $fragList "(^| )${index1}($| )"]
+            set logic2 [lsearch -all -regexp $fragList "(^| )${index2}($| )"]
 
-            if {[llength [lsearch -all -inline [list $logic0 $logic1 $logic2] "-1"]] == 3} {
-                set angleEnergyNotFrag [expr {$angleEnergyNotFrag + $energyAngle}]
-            } elseif {[llength [lsearch -all -inline [list $logic0 $logic1 $logic2] "-1"]] == 0} {
-                set angleEnergyFrag [expr {$angleEnergyFrag + $energyAngle}]
+            if {$logic0 == $logic1 && $logic1 == $logic2} {
+                # Atoms belonging to the same fragment
+                if {$logic0 == ""} {
+                    # All the atoms belonging to the remaining system
+                    if {[lsearch -index 0 $angleEnergyTable "none"] == -1} {
+                        lappend angleEnergyTable [list "none" 0]
+                    }
+                    set pos [lsearch -index 0 $angleEnergyTable "none"]
+                    set prevEnergy [lindex [lindex $angleEnergyTable $pos] 1]
+                    set finalEnergy [expr $prevEnergy + $energy]
+                    set angleEnergyTable [lreplace $angleEnergyTable $pos $pos [list "none" $finalEnergy]]
+                } else {
+                    # All the atoms belong to a certain fragment
+                    if {[lsearch -index 0 -exact $angleEnergyTable "$logic0"] == -1} {
+                        lappend angleEnergyTable [list "$logic0" 0]
+                    }
+                    set pos [lsearch -index 0 $angleEnergyTable "$logic0"]
+                    set prevEnergy [lindex [lindex $angleEnergyTable $pos] 1]
+                    set finalEnergy [expr $prevEnergy + $energy]
+                    set angleEnergyTable [lreplace $angleEnergyTable $pos $pos [list "$logic0" $finalEnergy]]
+                }
             } else {
-                set angleEnergyInteraction [expr {$angleEnergyInteraction + $energyAngle}]
+                # Atoms belong to different fragments
+                if {$logic0 == $logic1} {
+                    if {[lsearch -index 0 -exact $angleEnergyTable "$logic0-$logic2"] == -1 && [lsearch -index 0 -exact $angleEnergyTable "$logic2-$logic0"] == -1 } {
+                        lappend angleEnergyTable [list "$logic0-$logic2" 0]
+                    }
+                    set pos [lsearch -index 0 -exact $angleEnergyTable "$logic0-$logic2"]  
+                    if {$pos == -1} {
+                        set pos [lsearch -index 0 -exact $angleEnergyTable "$logic2-$logic0"]
+                    }
+                    set prevEnergy [lindex [lindex $angleEnergyTable $pos] 1]
+                    set finalEnergy [expr $prevEnergy + $energy]
+                    set angleEnergyTable [lreplace $angleEnergyTable $pos $pos [list "$logic0-$logic2" $finalEnergy]]
+                } elseif {$logic0 == $logic2} {
+                    if {[lsearch -index 0 -exact $angleEnergyTable "$logic0-$logic1"] == -1 && [lsearch -index 0 -exact $angleEnergyTable "$logic1-$logic0"] == -1 } {
+                        lappend angleEnergyTable [list "$logic0-$logic1" 0]
+                    }
+                    set pos [lsearch -index 0 -exact $angleEnergyTable "$logic0-$logic1"]  
+                    if {$pos == -1} {
+                        set pos [lsearch -index 0 -exact $angleEnergyTable "$logic1-$logic0"]
+                    }
+                    set prevEnergy [lindex [lindex $angleEnergyTable $pos] 1]
+                    set finalEnergy [expr $prevEnergy + $energy]
+                    set angleEnergyTable [lreplace $angleEnergyTable $pos $pos [list "$logic0-$logic1" $finalEnergy]]
+                } elseif {$logic1 == $logic2} {
+                    if {[lsearch -index 0 -exact $angleEnergyTable "$logic0-$logic1"] == -1 && [lsearch -index 0 -exact $angleEnergyTable "$logic1-$logic0"] == -1 } {
+                        lappend angleEnergyTable [list "$logic0-$logic1" 0]
+                    }
+                    set pos [lsearch -index 0 -exact $angleEnergyTable "$logic0-$logic1"]  
+                    if {$pos == -1} {
+                        set pos [lsearch -index 0 -exact $angleEnergyTable "$logic1-$logic0"]
+                    }
+                    set prevEnergy [lindex [lindex $angleEnergyTable $pos] 1]
+                    set finalEnergy [expr $prevEnergy + $energy]
+                    set angleEnergyTable [lreplace $angleEnergyTable $pos $pos [list "$logic0-$logic1" $finalEnergy]]
+                } else {
+                    set logicList [lsort [list $logic0 $logic1 $logic2]]
+                    if {[lsearch -index 0 -exact $angleEnergyTable "[lindex $logicList 0]-[lindex $logicList 1]-[lindex $logicList 2]"] == -1} {
+                        lappend angleEnergyTable [list "[lindex $logicList 0]-[lindex $logicList 1]-[lindex $logicList 2]" 0]
+                    }
+                    set pos [lsearch -index 0 -exact $angleEnergyTable "[lindex $logicList 0]-[lindex $logicList 1]-[lindex $logicList 2]"]
+                    set prevEnergy [lindex [lindex $angleEnergyTable $pos] 1]
+                    set finalEnergy [expr $prevEnergy + $energy]
+                    set angleEnergyTable [lreplace $angleEnergyTable $pos $pos [list "[lindex $logicList 0]-[lindex $logicList 1]-[lindex $logicList 2]" $finalEnergy]]
+                }
             }
-
-            
+   
         } else {
             puts "Missing parameter for angle $type0-$type1-$type2 (indexes $index0 $index1 $index2)"
         }
 
     }
-    puts "::Angles Energy:\n - Fragment: [expr $angleEnergyFrag / 627.50947415151515] Hartree | $angleEnergyFrag kcal/mol\n - Boundary: [expr $angleEnergyInteraction / 627.50947415151515] Hartree | $angleEnergyInteraction kcal/mol\n - Non-Fragment: [expr $angleEnergyNotFrag / 627.50947415151515] Hartree | $angleEnergyNotFrag kcal/mol\n TOTAL: [expr ($angleEnergyNotFrag + $angleEnergyFrag + $angleEnergyInteraction) / 627.50947415151515] Hartree | [expr $angleEnergyNotFrag + $angleEnergyFrag + $angleEnergyInteraction] kcal/mol\n"
+
+    # Calculating the final energy for angles
+    puts "####################\n##$colori Angles $colorf\n####################"
+    puts "\tEnergy Decomposition:"
+    set fe 0
+    set angleEnergyTable [lsort -index 0 $angleEnergyTable]
+    foreach line $angleEnergyTable {
+        set fe [expr $fe + [lindex $line 1]]
+        if {[lindex $line 0] == "none"} {
+            set description "Remaining system\t\t\t"
+        } else {
+            set a [split [lindex $line 0] "-"]
+            set aLength [llength $a]
+
+            if {$aLength == 1} {
+                set description "Fragment [lindex $a 0]\t\t\t\t"
+            } elseif {$aLength == 2} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t"
+                } else {
+                    set b [lindex $a 0]
+                    if {$b == ""} {
+                        set b [lindex $a 1]
+                    }
+                    set description "Fragment $b + Remaining system\t\t"
+                }
+            } elseif {$aLength == 3} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1] + Fragment [lindex $a 2]\t\t"
+                } else {
+                    set b [lindex $a 0]
+                    if {$b == ""} {
+                        set b [lindex $a 1]
+                        set c [lindex $a 2]
+                    } else {
+                        set c [lindex $a 1]
+                        if {$c == ""} {
+                            set c [lindex $a 2]
+                        }
+                    }
+                    set description "Fragment $b + Fragment $c + Remaining system"
+                }
+            } else {
+                puts "Something went wrong!"
+            }
+
+        }
+        puts "\t\t$description\t[lindex $line 1]\tHartree"
+    }
+
+    puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
 
 
     ##### Dihedral
@@ -311,8 +441,16 @@ proc angleDihedral {inputFile} {
 ### Start procedure
 
 puts "################################################################################\n### Energy Split\n################################################################################\n### Output\n################################################################################\n"
+puts "####################\n### $colori Fragments $colorf\n####################"
+source $argv
+set i 0
+foreach line $fragList {
+    puts "$colori\tFragment $i $colorf: $line"
+    incr i
+}
+puts "\n"
 
 bond $argv
-#angleDihedral $argv
+angleDihedral $argv
 
 puts "################################################################################\n### The calculation finished successfully on [clock format [clock seconds] -format %Y_%b_%d] at [clock format [clock seconds] -format %H:%M:%S]\n################################################################################"
