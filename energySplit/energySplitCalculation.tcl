@@ -2,15 +2,18 @@ source "/scratch/users/hfernandes/BioSIM-repository/energySplit/energySplit/exte
 package require math::linearalgebra
 package require Thread
 
-global colori colorf
+global colori colorf bondTotalList angleTotalList dihedralTotalList impTotalList vdwTotalList coloumbTotalList
 set colori "\033\[1;33m"
 set colorf "\033\[0m"
 
-proc bond {inputFile} {
-    global colori colorf
+proc bond {inputFile outputFile} {
+    global colori colorf bondTotalList
     # Read the inputFile. The following variables are set: numberAtoms pi types charges parameters connectivity xyz fragList
     source "$inputFile"
 
+    puts $outputFile "####################\n## Bonds \n####################"
+    puts "####################\n## $colori Bonds $colorf\n####################"
+    
     #Get HrmStr1
     set bondParam {}
     foreach line $parameters {
@@ -111,36 +114,42 @@ proc bond {inputFile} {
     }
 
     # Calculating the final energy for bonds
-    puts "####################\n## $colori Bonds $colorf\n####################"
+    puts $outputFile "\tEnergy Decomposition:"
     puts "\tEnergy Decomposition:"
     set fe 0
     set bondEnergyTable [lsort -index 0 $bondEnergyTable]
     foreach line $bondEnergyTable {
         set fe [expr $fe + [lindex $line 1]]
         if {[lindex $line 0] == "none"} {
-            set description "Fragment X\t\t"
+            set description "Fragment X\t\t\t"
         } else {
             set a [split [lindex $line 0] "-"]
             if {[lindex $a 0] == [lindex $a 1]} {
-                set description "Fragment [lindex $a 0]\t\t"
+                set description "Fragment [lindex $a 0]\t\t\t"
             } elseif {[lindex $a 0] == ""} {
-                set description "Fragment [lindex $a 1] + Fragment X\t"
+                set description "Fragment [lindex $a 1] + Fragment X\t\t"
             } elseif {[lindex $a 1] == ""} {
-                set description "Fragment [lindex $a 0] + Fragment X\t"
+                set description "Fragment [lindex $a 0] + Fragment X\t\t"
             } else {
-                set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t"
+                set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t"
             }
         }
         puts "\t\t$description\t\t\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t\t\t[lindex $line 1]\tHartree"
     }
 
     puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
 
+    # Export variable
+    set bondTotalList $bondEnergyTable
 }
 
-proc angleDihedral {inputFile} {
-    global colori colorf
+proc angleDihedral {inputFile outputFile} {
+    global colori colorf angleTotalList dihedralTotalList
+
     puts "####################\n##$colori Angles $colorf\n####################"
+    puts $outputFile "####################\n## Angles \n####################"
     # Read the inputFile. The following variables are set: numberAtoms pi types charges parameters connectivity xyz fragList
     source "$inputFile"
 
@@ -314,33 +323,35 @@ proc angleDihedral {inputFile} {
    
         } else {
             puts "Missing parameter for angle $type0-$type1-$type2 (indexes $index0 $index1 $index2)"
+            puts $outputFile "Missing parameter for angle $type0-$type1-$type2 (indexes $index0 $index1 $index2)"
         }
 
     }
 
     # Calculating the final energy for angles
     puts "\tEnergy Decomposition:"
+    puts $outputFile "\tEnergy Decomposition:"
     set fe 0
     set angleEnergyTable [lsort -index 0 $angleEnergyTable]
     foreach line $angleEnergyTable {
         set fe [expr $fe + [lindex $line 1]]
         if {[lindex $line 0] == "none"} {
-            set description "Fragment X\t\t\t\t"
+            set description "Fragment X\t\t\t\t\t"
         } else {
             set a [split [lindex $line 0] "-"]
             set aLength [llength $a]
 
             if {$aLength == 1} {
-                set description "Fragment [lindex $a 0]\t\t\t\t"
+                set description "Fragment [lindex $a 0]\t\t\t\t\t"
             } elseif {$aLength == 2} {
                 if {[lindex $a 0] != "" && [lindex $a 1] != ""} {
-                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t"
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t\t"
                 } else {
                     set b [lindex $a 0]
                     if {$b == ""} {
                         set b [lindex $a 1]
                     }
-                    set description "Fragment $b + Fragment X\t\t\t"
+                    set description "Fragment $b + Fragment X\t\t\t\t"
                 }
             } elseif {$aLength == 3} {
                 if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != ""} {
@@ -356,21 +367,28 @@ proc angleDihedral {inputFile} {
                             set c [lindex $a 2]
                         }
                     }
-                    set description "Fragment $b + Fragment $c + Fragment X\t"
+                    set description "Fragment $b + Fragment $c + Fragment X\t\t"
                 }
             } else {
                 puts "Something went wrong!"
+                puts $outputFile "Something went wrong!"
             }
 
         }
         puts "\t\t$description\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t[lindex $line 1]\tHartree"
     }
 
     puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
+
+    # Export variable
+    set angleTotalList $angleEnergyTable
 
 
     ##### Dihedral
     puts "####################\n##$colori Torsions $colorf\n####################"
+    puts $outputFile "####################\n## Torsions \n####################"
     ## Get AmbTrs
     set dihedralParam {}
     foreach line $parameters {
@@ -505,33 +523,35 @@ proc angleDihedral {inputFile} {
 
         } else {
             puts "Missing parameter for dihedral $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
+            puts $outputFile "Missing parameter for dihedral $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
         }
 
     }
 
     # Calculating the final energy for torsions
     puts "\tEnergy Decomposition:"
+    puts $outputFile "\tEnergy Decomposition:"
     set fe 0
     set dihedEnergyTable [lsort -index 0 $dihedEnergyTable]
     foreach line $dihedEnergyTable {
         set fe [expr $fe + [lindex $line 1]]
         if {[lindex $line 0] == "none"} {
-            set description "Fragment X\t\t\t\t"
+            set description "Fragment X\t\t\t\t\t"
         } else {
             set a [split [lindex $line 0] "-"]
             set aLength [llength $a]
 
             if {$aLength == 1} {
-                set description "Fragment [lindex $a 0]\t\t\t\t"
+                set description "Fragment [lindex $a 0]\t\t\t\t\t"
             } elseif {$aLength == 2} {
                 if {[lindex $a 0] != "" && [lindex $a 1] != ""} {
-                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t"
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t\t"
                 } else {
                     set b [lindex $a 0]
                     if {$b == ""} {
                         set b [lindex $a 1]
                     }
-                    set description "Fragment $b + Fragment X\t\t\t"
+                    set description "Fragment $b + Fragment X\t\t\t\t"
                 }
             } elseif {$aLength == 3} {
                 if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != ""} {
@@ -547,23 +567,53 @@ proc angleDihedral {inputFile} {
                             set c [lindex $a 2]
                         }
                     }
-                    set description "Fragment $b + Fragment $c + Fragment X\t"
+                    set description "Fragment $b + Fragment $c + Fragment X\t\t"
+                }
+            } elseif {$aLength == 4} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != "" && [lindex $a 3] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1] + Fragment [lindex $a 2] + Fragment [lindex $a 3]"
+                } else {
+                    set b [lindex $a 0]
+                    set c [lindex $a 1]
+                    set d [lindex $a 2]
+                    set e [lindex $a 3]
+
+                    if {$b == ""} {
+                        set b "X"
+                    } elseif {$c == ""} {
+                        set c "X"
+                    } elseif {$d == ""} {
+                        set d "X"
+                    } elseif {$e == ""} {
+                        set e "X"
+                    } else {
+                        puts "Something went wrong!"
+                        puts $outputFile "Something went wrong!"
+                    }
+                    set description "Fragment $b + Fragment $c + Fragment $d + Fragment $e"
                 }
             } else {
                 puts "Something went wrong!"
+                puts $outputFile "Something went wrong!"
             }
 
         }
         puts "\t\t$description\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t[lindex $line 1]\tHartree"
     }
 
     puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
+
+    #Export variable
+    set dihedralTotalList $dihedEnergyTable
 
 }
 
-proc impropers {inputFile} {
-    global colori colorf
+proc impropers {inputFile outputFile} {
+    global colori colorf impTotalList
     puts "####################\n##$colori Out-of-plane $colorf\n####################"
+    puts $outputFile "####################\n## Out-of-plane \n####################"
     # Read the inputFile. The following variables are set: numberAtoms pi types charges parameters connectivity xyz fragList
     source "$inputFile"
 
@@ -728,33 +778,35 @@ proc impropers {inputFile} {
 
         } else {
             puts "/!\\ Missing parameter for improper $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
+            puts $outputFile "/!\\ Missing parameter for improper $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
         }
 
     }
 
-    # Calculating the final energy for impropes
+    # Calculating the final energy for impropers
     puts "\tEnergy Decomposition:"
+    puts $outputFile "\tEnergy Decomposition:"
     set fe 0
     set impEnergyTable [lsort -index 0 $impEnergyTable]
     foreach line $impEnergyTable {
         set fe [expr $fe + [lindex $line 1]]
         if {[lindex $line 0] == "none"} {
-            set description "Fragment X\t\t\t\t"
+            set description "Fragment X\t\t\t\t\t"
         } else {
             set a [split [lindex $line 0] "-"]
             set aLength [llength $a]
 
             if {$aLength == 1} {
-                set description "Fragment [lindex $a 0]\t\t\t\t"
+                set description "Fragment [lindex $a 0]\t\t\t\t\t"
             } elseif {$aLength == 2} {
                 if {[lindex $a 0] != "" && [lindex $a 1] != ""} {
-                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t"
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t\t"
                 } else {
                     set b [lindex $a 0]
                     if {$b == ""} {
                         set b [lindex $a 1]
                     }
-                    set description "Fragment $b + Fragment X\t\t\t"
+                    set description "Fragment $b + Fragment X\t\t\t\t"
                 }
             } elseif {$aLength == 3} {
                 if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != ""} {
@@ -770,42 +822,75 @@ proc impropers {inputFile} {
                             set c [lindex $a 2]
                         }
                     }
-                    set description "Fragment $b + Fragment $c + Fragment X\t"
+                    set description "Fragment $b + Fragment $c + Fragment X\t\t"
+                }
+            } elseif {$aLength == 4} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != "" && [lindex $a 3] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1] + Fragment [lindex $a 2] + Fragment [lindex $a 3]"
+                } else {
+                    set b [lindex $a 0]
+                    set c [lindex $a 1]
+                    set d [lindex $a 2]
+                    set e [lindex $a 3]
+
+                    if {$b == ""} {
+                        set b "X"
+                    } elseif {$c == ""} {
+                        set c "X"
+                    } elseif {$d == ""} {
+                        set d "X"
+                    } elseif {$e == ""} {
+                        set e "X"
+                    } else {
+                        puts "Something went wrong!"
+                        puts $outputFile "Something went wrong!"
+                    }
+                    set description "Fragment $b + Fragment $c + Fragment $d + Fragment $e"
                 }
             } else {
                 puts "Something went wrong!"
+                puts $outputFile "Something went wrong!"
             }
 
         }
         puts "\t\t$description\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t[lindex $line 1]\tHartree"
     }
 
     puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
+
+    # Export variable
+    set impTotalList $impEnergyTable
 }
 
-proc nonbond {inputFile} {
-    global colori colorf
+proc nonbond {inputFile outputFile} {
+    global colori colorf vdwTotalList coloumbTotalList
     # Read the inputFile. The following variables are set: numberAtoms pi types charges parameters connectivity xyz fragList
     source "$inputFile"
 
+    puts "Calculating non-bond interactions..."
+
     set numberThreads [numberCPUs]
-    set atomIncrement [format %.0f [expr $numberAtoms / $numberThreads + 1]]
 
+    set atomIncrement [format %.0f [expr $numberAtoms / (($numberThreads*(2+2*$numberThreads))/4) + 1]]
 
-    for {set core 0} { [expr $core * $atomIncrement] < $numberAtoms } { incr core } {
-        set first [expr $core * $atomIncrement]
-        set last [expr $first + $atomIncrement]
-
+    set last 0
+    for {set core 0} { $last < $numberAtoms } { incr core } {
+        set first $last
+        set last [expr $first + ($atomIncrement * ($core + 1))]
         
         if {$last > $numberAtoms} {
             set last $numberAtoms
         }
 
-        #puts "$first $last"
-        
+        # Create a temporary file to store the results from the threads
+        file tempfile [subst $core]tempFile
+
         set [subst $core]cpu [thread::create {
-                proc nonbond {atomStart atomEnd inputFile} {
+                proc nonbond {atomStart atomEnd inputFile tempFile} {
                     source "$inputFile"
+
 
                     ## Get VDW
                     set vdwParam {}
@@ -853,16 +938,10 @@ proc nonbond {inputFile} {
                         set scale0Atoms [lsort -unique $scale0Atoms]
                         set scale083Atoms [lsort -unique $scale083Atoms]
 
-
-
+                        
                         for {set j [expr $i + 1]} { $j < $numberAtoms } { incr j } {
-                            set xi [lindex [lindex $xyz $i] 0]
-                            set yi [lindex [lindex $xyz $i] 1]
-                            set zi [lindex [lindex $xyz $i] 2]
-
-                            set xj [lindex [lindex $xyz $j] 0]
-                            set yj [lindex [lindex $xyz $j] 1]
-                            set zj [lindex [lindex $xyz $j] 2]
+                            lassign [lindex $xyz $i] xi yi zi
+                            lassign [lindex $xyz $j] xj yj zj
 
                             set distance [expr {( ($xi - $xj)**2 + ($yi - $yj)**2 + ($zi - $zj)**2 )**(0.5)}]
                             
@@ -870,34 +949,29 @@ proc nonbond {inputFile} {
                             set chargej [lindex $charges $j]
 
                             ## VDW
-                            set ri 0
-                            set ei 0
-                            set rj 0
-                            set ej 0
-                            set xi 0
-                            set yi 0
-                            set zi 0
-                            set xj 0
-                            set yj 0
-                            set zj 0
+                            unset xi yi zi xj yj zj
 
                             set atomi [lsearch -index 0 -inline -exact $vdwParam $typei]
-                            if {$atomi == ""} {
-                                puts "Atom $typei not found"
-                            } else {
+                            if {$atomi != ""} {
                                 set ri [lindex $atomi 1]
                                 set ei [lindex $atomi 2]
+                            } else {
+                                puts "Atom $typei not found"
+                                puts $outputFile "Atom $typei not found"
                             }
                             set atomj [lsearch -index 0 -inline -exact $vdwParam $typej]
-                            if {$atomi == ""} {
-                                puts "Atom $typej not found"
-                            } else {
+                            if {$atomi != ""} {
                                 set rj [lindex $atomj 1]
                                 set ej [lindex $atomj 2]
+                            } else {
+                                puts "Atom $typej not found"
+                                puts $outputFile "Atom $typej not found"
                             }
 
                             set rij [expr {$ri + $rj}]
                             set eij [expr {($ei * $ej)**(0.5)}]
+
+                            unset ri ei rj ej
 
                             set energy [expr {((($eij * ($rij)**12) / (($distance)**12)) - ((2 * $eij * ($rij)**6) / (($distance)**6))) / 627.50947415151515}]
 
@@ -905,10 +979,19 @@ proc nonbond {inputFile} {
                             ## Coulomb
 
                             set energyCoulomb [expr {(332.063712827427 * (($chargei * $chargej) / $distance)) / 627.50947415151515}]
-
-
-                            set logic0 [lsearch -all -regexp $fragList "(^| )${i}($| )"]
-                            set logic1 [lsearch -all -regexp $fragList "(^| )${j}($| )"]
+                            
+                            set logic0 ""
+                            set logic1 ""
+                            set index 0
+                            foreach frag $fragList {
+                                if {[lsearch -exact $frag $i] != -1} {
+                                    set logic0 $index
+                                }
+                                if {[lsearch -exact $frag $j] != -1} {
+                                    set logic1 $index
+                                }
+                                incr index
+                            }
 
                             if {[lsearch $scale0Atoms $j] != -1} {
                                 # Do nothing
@@ -924,60 +1007,48 @@ proc nonbond {inputFile} {
                                             lappend vdwEnergyTable [list "none" 0]
                                         }
                                         set pos [lsearch -index 0 $vdwEnergyTable "none"]
-                                        set prevEnergy [lindex [lindex $vdwEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energy]
-                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos            [list "none" $finalEnergy]]
+                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list "none" [expr [lindex [lindex $vdwEnergyTable $pos] 1] + $energy]]]
 
                                         if {[lsearch -index 0 $coloumbEnergyTable "none"] == -1} {
                                             lappend coloumbEnergyTable [list "none" 0]
                                         }
                                         set pos [lsearch -index 0 $coloumbEnergyTable "none"]
-                                        set prevEnergy [lindex [lindex $coloumbEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energyCoulomb]
-                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos            [list "none" $finalEnergy]]
+                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list "none" [expr [lindex [lindex $coloumbEnergyTable $pos] 1] + $energyCoulomb]]]
                                     } else {
                                         # Atoms belonging to a certain fragment
-                                        if {[lsearch -index 0 $vdwEnergyTable "$logic0-$logic1"]           == -1} {
+                                        if {[lsearch -index 0 $vdwEnergyTable "$logic0-$logic1"] == -1} {
                                              lappend vdwEnergyTable [list "$logic0-$logic1" 0]
                                         }
-                                        set pos [lsearch -index 0 $vdwEnergyTable          "$logic0-$logic1"]
-                                        set prevEnergy [lindex [lindex $vdwEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energy]
-                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos            [list "$logic0-$logic1" $finalEnergy]]
+                                        set pos [lsearch -index 0 $vdwEnergyTable "$logic0-$logic1"]
+                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $vdwEnergyTable $pos] 1] + $energy]]]
 
 
-                                        if {[lsearch -index 0 $coloumbEnergyTable "$logic0-$logic1"]           == -1} {
+                                        if {[lsearch -index 0 $coloumbEnergyTable "$logic0-$logic1"] == -1} {
                                              lappend coloumbEnergyTable [list "$logic0-$logic1" 0]
                                         }
-                                        set pos [lsearch -index 0 $coloumbEnergyTable          "$logic0-$logic1"]
-                                        set prevEnergy [lindex [lindex $coloumbEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energyCoulomb]
-                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos            [list "$logic0-$logic1" $finalEnergy]]
+                                        set pos [lsearch -index 0 $coloumbEnergyTable "$logic0-$logic1"]
+                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $coloumbEnergyTable $pos] 1] + $energyCoulomb]]]
                                     }
                                 } else {
                                     # Atoms belonging to different fragments
-                                    if {[lsearch -index 0 -exact $vdwEnergyTable "$logic0-$logic1"]             == -1 && [lsearch -index 0 -exact $vdwEnergyTable             "$logic1-$logic0"] == -1} {
+                                    if {[lsearch -index 0 -exact $vdwEnergyTable "$logic0-$logic1"] == -1 && [lsearch -index 0 -exact $vdwEnergyTable             "$logic1-$logic0"] == -1} {
                                         lappend vdwEnergyTable [list "$logic0-$logic1" 0]
                                     }
-                                    set pos [lsearch -index 0 -exact $vdwEnergyTable           "$logic0-$logic1"]
+                                    set pos [lsearch -index 0 -exact $vdwEnergyTable "$logic0-$logic1"]
                                     if {$pos == -1} {
-                                        set pos [lsearch -index 0 -exact $vdwEnergyTable           "$logic1-$logic0"]
+                                        set pos [lsearch -index 0 -exact $vdwEnergyTable "$logic1-$logic0"]
                                     }
-                                    set prevEnergy [lindex [lindex $vdwEnergyTable $pos] 1]
-                                    set finalEnergy [expr $prevEnergy + $energy]
-                                    set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list          "$logic0-$logic1" $finalEnergy]]
+                                    set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $vdwEnergyTable $pos] 1] + $energy]]]
 
 
-                                    if {[lsearch -index 0 -exact $coloumbEnergyTable "$logic0-$logic1"]             == -1 && [lsearch -index 0 -exact $coloumbEnergyTable             "$logic1-$logic0"] == -1} {
+                                    if {[lsearch -index 0 -exact $coloumbEnergyTable "$logic0-$logic1"] == -1 && [lsearch -index 0 -exact $coloumbEnergyTable             "$logic1-$logic0"] == -1} {
                                         lappend coloumbEnergyTable [list "$logic0-$logic1" 0]
                                     }
-                                    set pos [lsearch -index 0 -exact $coloumbEnergyTable           "$logic0-$logic1"]
+                                    set pos [lsearch -index 0 -exact $coloumbEnergyTable "$logic0-$logic1"]
                                     if {$pos == -1} {
-                                        set pos [lsearch -index 0 -exact $coloumbEnergyTable           "$logic1-$logic0"]
+                                        set pos [lsearch -index 0 -exact $coloumbEnergyTable "$logic1-$logic0"]
                                     }
-                                    set prevEnergy [lindex [lindex $coloumbEnergyTable $pos] 1]
-                                    set finalEnergy [expr $prevEnergy + $energyCoulomb]
-                                    set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list          "$logic0-$logic1" $finalEnergy]]
+                                    set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $coloumbEnergyTable $pos] 1] + $energyCoulomb]]]
                                 }
 
                             } else {
@@ -990,84 +1061,80 @@ proc nonbond {inputFile} {
                                             lappend vdwEnergyTable [list "none" 0]
                                         }
                                         set pos [lsearch -index 0 $vdwEnergyTable "none"]
-                                        set prevEnergy [lindex [lindex $vdwEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energy]
-                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos            [list "none" $finalEnergy]]
+                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list "none" [expr [lindex [lindex $vdwEnergyTable $pos] 1] + $energy]]]
 
                                         if {[lsearch -index 0 $coloumbEnergyTable "none"] == -1} {
                                             lappend coloumbEnergyTable [list "none" 0]
                                         }
                                         set pos [lsearch -index 0 $coloumbEnergyTable "none"]
-                                        set prevEnergy [lindex [lindex $coloumbEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energyCoulomb]
-                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos            [list "none" $finalEnergy]]
+                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list "none" [expr [lindex [lindex $coloumbEnergyTable $pos] 1] + $energyCoulomb]]]
                                     } else {
                                         # Atoms belonging to a certain fragment
-                                        if {[lsearch -index 0 $vdwEnergyTable "$logic0-$logic1"]           == -1} {
+                                        if {[lsearch -index 0 $vdwEnergyTable "$logic0-$logic1"] == -1} {
                                              lappend vdwEnergyTable [list "$logic0-$logic1" 0]
                                         }
-                                        set pos [lsearch -index 0 $vdwEnergyTable          "$logic0-$logic1"]
-                                        set prevEnergy [lindex [lindex $vdwEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energy]
-                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos            [list "$logic0-$logic1" $finalEnergy]]
+                                        set pos [lsearch -index 0 $vdwEnergyTable "$logic0-$logic1"]
+                                        set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $vdwEnergyTable $pos] 1] + $energy]]]
 
 
-                                        if {[lsearch -index 0 $coloumbEnergyTable "$logic0-$logic1"]           == -1} {
+                                        if {[lsearch -index 0 $coloumbEnergyTable "$logic0-$logic1"] == -1} {
                                              lappend coloumbEnergyTable [list "$logic0-$logic1" 0]
                                         }
-                                        set pos [lsearch -index 0 $coloumbEnergyTable          "$logic0-$logic1"]
-                                        set prevEnergy [lindex [lindex $coloumbEnergyTable $pos] 1]
-                                        set finalEnergy [expr $prevEnergy + $energyCoulomb]
-                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos            [list "$logic0-$logic1" $finalEnergy]]
+                                        set pos [lsearch -index 0 $coloumbEnergyTable "$logic0-$logic1"]
+                                        set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $coloumbEnergyTable $pos] 1] + $energyCoulomb]]]
                                     }
                                 } else {
                                     # Atoms belonging to different fragments
-                                    if {[lsearch -index 0 -exact $vdwEnergyTable "$logic0-$logic1"]             == -1 && [lsearch -index 0 -exact $vdwEnergyTable             "$logic1-$logic0"] == -1} {
+                                    if {[lsearch -index 0 -exact $vdwEnergyTable "$logic0-$logic1"] == -1 && [lsearch -index 0 -exact $vdwEnergyTable             "$logic1-$logic0"] == -1} {
                                         lappend vdwEnergyTable [list "$logic0-$logic1" 0]
                                     }
-                                    set pos [lsearch -index 0 -exact $vdwEnergyTable           "$logic0-$logic1"]
+                                    set pos [lsearch -index 0 -exact $vdwEnergyTable "$logic0-$logic1"]
                                     if {$pos == -1} {
-                                        set pos [lsearch -index 0 -exact $vdwEnergyTable           "$logic1-$logic0"]
+                                        set pos [lsearch -index 0 -exact $vdwEnergyTable "$logic1-$logic0"]
                                     }
-                                    set prevEnergy [lindex [lindex $vdwEnergyTable $pos] 1]
-                                    set finalEnergy [expr $prevEnergy + $energy]
-                                    set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list          "$logic0-$logic1" $finalEnergy]]
+                                    set vdwEnergyTable [lreplace $vdwEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $vdwEnergyTable $pos] 1] + $energy]]]
 
 
-                                    if {[lsearch -index 0 -exact $coloumbEnergyTable "$logic0-$logic1"]             == -1 && [lsearch -index 0 -exact $coloumbEnergyTable             "$logic1-$logic0"] == -1} {
+                                    if {[lsearch -index 0 -exact $coloumbEnergyTable "$logic0-$logic1"] == -1 && [lsearch -index 0 -exact $coloumbEnergyTable             "$logic1-$logic0"] == -1} {
                                         lappend coloumbEnergyTable [list "$logic0-$logic1" 0]
                                     }
-                                    set pos [lsearch -index 0 -exact $coloumbEnergyTable           "$logic0-$logic1"]
+                                    set pos [lsearch -index 0 -exact $coloumbEnergyTable "$logic0-$logic1"]
                                     if {$pos == -1} {
-                                        set pos [lsearch -index 0 -exact $coloumbEnergyTable           "$logic1-$logic0"]
+                                        set pos [lsearch -index 0 -exact $coloumbEnergyTable "$logic1-$logic0"]
                                     }
-                                    set prevEnergy [lindex [lindex $coloumbEnergyTable $pos] 1]
-                                    set finalEnergy [expr $prevEnergy + $energyCoulomb]
-                                    set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list          "$logic0-$logic1" $finalEnergy]]
+                                    set coloumbEnergyTable [lreplace $coloumbEnergyTable $pos $pos [list "$logic0-$logic1" [expr [lindex [lindex $coloumbEnergyTable $pos] 1] + $energyCoulomb]]]
                                 }
 
                             }
  
                         }
+
                     }
 
-
-                    return "[list $coloumbEnergyTable $vdwEnergyTable]"
+                    set file [open "$tempFile" w]
+                    puts $file [list $coloumbEnergyTable $vdwEnergyTable]
+                    close $file
                 }
+
                 thread::wait
             }]
         
-        ::thread::send [set ${core}cpu] [list nonbond $first $last $inputFile] ${core}result
+        ::thread::send -async [set ${core}cpu] [list nonbond $first $last $inputFile [subst $${core}tempFile]] result
 
         set maxCore $core
     }
 
+
+    for {set core 0} { $core <= $maxCore } { incr core } {
+        vwait result
+    }    
+
     set vdwList {}
     set coloumbList {}
     for {set core 0} { $core <= $maxCore } { incr core } {
-        ::thread::release [set ${core}cpu]
 
-        set var [set ${core}result]
+        set file [open "[subst $${core}tempFile]" r]
+        set var [read $file]
 
         lappend vdwList [lindex $var 1]
         lappend coloumbList [lindex $var 0]
@@ -1080,14 +1147,16 @@ proc nonbond {inputFile} {
    foreach line $vdwList {
         set a [lindex $line 0]
 
-        set pos [lsearch -index 0 -exact $vdwFinal $a]
+        set pos [lsearch -index 0 -exact $vdwFinal "$a"]
         if {$pos == -1} {
            lappend vdwFinal $line
+        } else {
+            set b [lindex [lsearch -index 0 -exact -inline $vdwFinal $a] 1]
+            set c [expr $b + [lindex $line 1]]
+            set vdwFinal [lreplace $vdwFinal $pos $pos [list "$a" "$c"]]
         }
-        set b [lindex [lsearch -index 0 -exact -inline $vdwFinal $a] 1]
-        set c [expr $b + [lindex $line 1]]
-        set vdwFinal [lreplace $vdwFinal $pos $pos [list "$a" "$c"]]
    }
+
 
    set coloumbFinal {}
    unset a b c
@@ -1097,15 +1166,187 @@ proc nonbond {inputFile} {
         set pos [lsearch -index 0 -exact $coloumbFinal $a]
         if {$pos == -1} {
             lappend coloumbFinal $line
+        } else {
+            set b [lindex [lsearch -index 0 -exact -inline $coloumbFinal $a] 1]
+            set c [expr $b + [lindex $line 1]]
+            set coloumbFinal [lreplace $coloumbFinal $pos $pos [list "$a" "$c"]]
         }
-        set b [lindex [lsearch -index 0 -exact -inline $coloumbFinal $a] 1]
-        set c [expr $b + [lindex $line 1]]
-        set coloumbFinal [lreplace $coloumbFinal $pos $pos [list "$a" "$c"]]
-
    }
 
-   puts $vdwFinal
-   puts $coloumbFinal
+   # Calculating the final energy for VWD interactions
+    puts "####################\n## $colori VDW $colorf\n####################"
+    puts $outputFile "####################\n## VDW \n####################"
+    puts "\tEnergy Decomposition:"
+    puts $outputFile "\tEnergy Decomposition:"
+    set fe 0
+    set vdwFinal [lsort -index 0 $vdwFinal]
+    foreach line $vdwFinal {
+        set fe [expr $fe + [lindex $line 1]]
+        if {[lindex $line 0] == "none"} {
+            set description "Fragment X\t\t"
+        } else {
+            set a [split [lindex $line 0] "-"]
+            if {[lindex $a 0] == [lindex $a 1]} {
+                set description "Fragment [lindex $a 0]\t\t"
+            } elseif {[lindex $a 0] == ""} {
+                set description "Fragment [lindex $a 1] + Fragment X\t"
+            } elseif {[lindex $a 1] == ""} {
+                set description "Fragment [lindex $a 0] + Fragment X\t"
+            } else {
+                set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t"
+            }
+        }
+        puts "\t\t$description\t\t\t\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t\t\t\t[lindex $line 1]\tHartree"
+    }
+
+    puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
+
+    # Export variable
+    set vdwTotalList $vdwFinal
+
+    # Calculating the final energy for Coloumb interactions
+    puts "####################\n## $colori Coloumb $colorf\n####################"
+    puts $outputFile "####################\n## Coloumb \n####################"
+    puts "\tEnergy Decomposition:"
+    puts $outputFile "\tEnergy Decomposition:"
+    set fe 0
+    set coloumbFinal [lsort -index 0 $coloumbFinal]
+    foreach line $coloumbFinal {
+        set fe [expr $fe + [lindex $line 1]]
+        if {[lindex $line 0] == "none"} {
+            set description "Fragment X\t\t"
+        } else {
+            set a [split [lindex $line 0] "-"]
+            if {[lindex $a 0] == [lindex $a 1]} {
+                set description "Fragment [lindex $a 0]\t\t"
+            } elseif {[lindex $a 0] == ""} {
+                set description "Fragment [lindex $a 1] + Fragment X\t"
+            } elseif {[lindex $a 1] == ""} {
+                set description "Fragment [lindex $a 0] + Fragment X\t"
+            } else {
+                set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t"
+            }
+        }
+        puts "\t\t$description\t\t\t\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t\t\t\t[lindex $line 1]\tHartree"
+    }
+
+    puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
+
+    # Export variable
+    set coloumbTotalList $coloumbFinal
+
+}
+
+proc totalEnergies {outputFile} {
+    global colori colorf bondTotalList angleTotalList dihedralTotalList impTotalList vdwTotalList coloumbTotalList
+
+    set list [lsort -index 0 [join [list $bondTotalList $angleTotalList $dihedralTotalList $impTotalList $vdwTotalList $coloumbTotalList]]]
+
+    set finalEnergies {}
+    foreach line $list {
+        set a [lindex $line 0]
+        set z [lsort [split $a "-"]]
+
+        if {[llength $z] == 2} {
+            if {[lindex $z 0] == [lindex $z 1]} {
+                set a "[lindex $z 0]"
+            } else {
+                set a "[lindex $z 0]-[lindex $z 1]"
+            }
+        }
+
+        set pos [lsearch -index 0 -exact $finalEnergies "$a"]
+        if {$pos == -1} {
+            lappend finalEnergies [list $a [lindex $line 1]]
+        } else {
+            set b [lindex [lsearch -index 0 -exact -inline $finalEnergies "$a"] 1]
+            set c [expr $b + [lindex $line 1]]
+            set finalEnergies [lreplace $finalEnergies $pos $pos [list "$a" "$c"]]
+        }
+   }
+
+    # Calculating the final energy for Total Energy interactions
+    puts "####################\n## $colori Total Energy $colorf\n####################"
+    puts $outputFile "####################\n## Total Energy \n####################"
+    puts "\tEnergy Decomposition:"
+    puts $outputFile "\tEnergy Decomposition:"
+    set fe 0
+    set finalEnergies [lsort -index 0 $finalEnergies]
+    foreach line $finalEnergies {
+        set fe [expr $fe + [lindex $line 1]]
+        if {[lindex $line 0] == "none"} {
+            set description "Fragment X\t\t\t\t\t"
+        } else {
+            set a [split [lindex $line 0] "-"]
+            set aLength [llength $a]
+
+            if {$aLength == 1} {
+                set description "Fragment [lindex $a 0]\t\t\t\t\t"
+            } elseif {$aLength == 2} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1]\t\t\t\t"
+                } else {
+                    set b [lindex $a 0]
+                    if {$b == ""} {
+                        set b [lindex $a 1]
+                    }
+                    set description "Fragment $b + Fragment X\t\t\t\t"
+                }
+            } elseif {$aLength == 3} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1] + Fragment [lindex $a 2]\t\t"
+                } else {
+                    set b [lindex $a 0]
+                    if {$b == ""} {
+                        set b [lindex $a 1]
+                        set c [lindex $a 2]
+                    } else {
+                        set c [lindex $a 1]
+                        if {$c == ""} {
+                            set c [lindex $a 2]
+                        }
+                    }
+                    set description "Fragment $b + Fragment $c + Fragment X\t\t"
+                }
+            } elseif {$aLength == 4} {
+                if {[lindex $a 0] != "" && [lindex $a 1] != "" && [lindex $a 2] != "" && [lindex $a 3] != ""} {
+                    set description "Fragment [lindex $a 0] + Fragment [lindex $a 1] + Fragment [lindex $a 2] + Fragment [lindex $a 3]"
+                } else {
+                    set b [lindex $a 0]
+                    set c [lindex $a 1]
+                    set d [lindex $a 2]
+                    set e [lindex $a 3]
+
+                    if {$b == ""} {
+                        set b "X"
+                    } elseif {$c == ""} {
+                        set c "X"
+                    } elseif {$d == ""} {
+                        set d "X"
+                    } elseif {$e == ""} {
+                        set e "X"
+                    } else {
+                        puts "Something went wrong!"
+                        puts $outputFile "Something went wrong!"
+                    }
+                    set description "Fragment $b + Fragment $c + Fragment $d + Fragment $e"
+                }
+            } else {
+                puts "Something went wrong!"
+                puts $outputFile "Something went wrong!"
+            }
+
+        }
+        puts "\t\t$description\t[lindex $line 1]\tHartree"
+        puts $outputFile "\t\t$description\t[lindex $line 1]\tHartree"
+    }
+
+    puts "$colori\tTotal Energy: $fe Hartree\n$colorf"
+    puts $outputFile "\tTotal Energy: $fe Hartree\n"
 
 }
 
@@ -1141,20 +1382,35 @@ proc numberCPUs {} {
 }
 
 ### Start procedure
+set dir [file rootname [file normalize "$argv"]]
+set outputFilePath "${dir}_output[clock format [clock seconds] -format %Y%b%d_%H%M%S].txt"
+set outputFile [open "$outputFilePath" w]
+
 puts "################################################################################\n### Energy Split\n################################################################################\n### Output\n################################################################################\n"
+puts $outputFile "################################################################################\n### Energy Split\n################################################################################\n### Output\n################################################################################\n"
 puts "### Energy Split detected [numberCPUs] cpu(s) available.\n"
+puts $outputFile "### Energy Split detected [numberCPUs] cpu(s) available.\n"
 puts "####################\n### $colori Fragments $colorf\n####################"
+puts $outputFile "####################\n### Fragments \n####################"
 source $argv
 set i 0
 foreach line $fragList {
     puts "$colori\tFragment $i $colorf: $line"
+    puts $outputFile "\tFragment $i: $line"
     incr i
 }
 puts "\n"
 
-bond $argv
-angleDihedral $argv
-impropers $argv
-nonbond $argv
 
-puts "################################################################################\n### The calculation finished successfully on [clock format [clock seconds] -format %Y_%b_%d] at [clock format [clock seconds] -format %H:%M:%S]\n################################################################################\n### Developed by Henrique S. Fernandes (henriquefer11@gmail.com)\n################################################################################"
+bond $argv $outputFile
+angleDihedral $argv $outputFile
+impropers $argv $outputFile
+nonbond $argv $outputFile
+totalEnergies $outputFile
+
+
+puts $outputFile "################################################################################\n### The calculation finished successfully on [clock format [clock seconds] -format %Y_%b_%d] at [clock format [clock seconds] -format %H:%M:%S]. \n################################################################################\n### Developed by Henrique S. Fernandes (henriquefer11@gmail.com)\n################################################################################"
+
+close $outputFile
+
+puts "################################################################################\n### The calculation finished successfully on [clock format [clock seconds] -format %Y_%b_%d] at [clock format [clock seconds] -format %H:%M:%S]. \n### Output file: $outputFilePath\n################################################################################\n### Developed by Henrique S. Fernandes (henriquefer11@gmail.com)\n################################################################################"
