@@ -20,6 +20,10 @@ Tcl 8.5 or later
 6. Restart VMD.
 
 **How to start?**
+
+![Image1](Screenshots/image1.gif)
+![Image2](Screenshots/image2.gif)
+
 1. Open a structure on VMD.
 2. Open the "Energy Split" available through the Extensions > VMD Store > Energy Split menu.
 3. (Optional) Create fragments using atom selections (VMD style).
