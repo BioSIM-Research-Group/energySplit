@@ -35,3 +35,6 @@ Tcl 8.5 or later
 (2) You can run the calculation through the Energy Split GUI or, in the Terminal, using the following command:
 
 tclsh energySplitPath/energySplitCalculation.tcl inputfile.tcl
+
+**Example of an output file**
+![Image3](Screenshots/image3.gif)
