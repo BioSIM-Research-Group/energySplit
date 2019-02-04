@@ -12,7 +12,7 @@ Tcl 8.5 or later
 ## Installation
 
 **Manual Installation**
-1. Download the latest release ![Download](https://github.com/henriquefer/energySplit/releases/latest).
+1. Download the latest release [Download](https://github.com/henriquefer/energySplit/releases/latest).
 2. Copy the directory to a location on you computer. (Grab that location!)
 3. Copy the text inside "install.txt" file and paste on your .vmdrc file (macOS and Linux ) or vmd.rc file (Windows).
 4. Replace the string "none" by your installation location (Step 2).
@@ -29,4 +29,5 @@ Tcl 8.5 or later
 (1) If you open the structure using molUP, Energy Split will automatically grab the parameters from the molUP GUI. In that case, you do not need to import the AMBER parameters file.
 
 (2) You can run the calculation through the Energy Split GUI or, in the Terminal, using the following command:
-'tclsh energySplitPath/energySplitCalculation.tcl inputfile.tcl'
+
+tclsh energySplitPath/energySplitCalculation.tcl inputfile.tcl
