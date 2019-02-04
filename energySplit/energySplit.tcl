@@ -16,9 +16,17 @@ namespace eval energySplit:: {
     # The installation path of this plugin is stored in the energySplitPath variable
     variable version    "0.1"
     variable colorsbg [list blue red gray orange yellow tan green white pink cyan purple]
+    variable loadedParameters ""
 
     # GUI
     variable topGui         ".energySplitGui"
+
+    ## sed
+		if {[string first "Windows" $::tcl_platform(os)] != -1} {
+			variable sed "$::energySplitpath/windowsDependencies/sed.exe"
+		} else {
+			variable sed "sed"
+		}
 
 }
 

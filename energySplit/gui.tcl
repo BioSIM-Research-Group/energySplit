@@ -107,19 +107,24 @@ proc energySplit::topGui {} {
 
     ### Footer
     grid [ttk::frame $f0.f1 \
-        ] -in $f0 -row 2 -column 0 -columnspan 2 -sticky news
+        ] -in $f0 -row 2 -column 0 -columnspan 3 -sticky news
         
     grid columnconfigure $f0.f1     0   -weight 1
+
+    grid [ttk::button $f0.f1.loadPrmtop \
+        -command {energySplit::loadPrmtop} \
+        -text "Load AMBER parameters (.prmtop)" \
+        ] -in $f0.f1 -row 0 -column 0 -sticky ens -pady [list 5 5] -padx [list 0 20]
 
     grid [ttk::button $f0.f1.saveButton \
         -command {energySplit::save} \
         -text "Save" \
-        ] -in $f0.f1 -row 0 -column 0 -sticky ens -pady [list 5 5] -padx [list 0 0]
+        ] -in $f0.f1 -row 0 -column 1 -sticky ens -pady [list 5 5] -padx [list 0 0]
 
     grid [ttk::button $f0.f1.saveRunButton \
         -command {energySplit::saveRun} \
         -text "Save & Run" \
-        ] -in $f0.f1 -row 0 -column 1 -sticky ens -pady [list 5 5] -padx [list 5 20]
+        ] -in $f0.f1 -row 0 -column 2 -sticky ens -pady [list 5 5] -padx [list 5 20]
 
 }
 
@@ -179,8 +184,10 @@ proc energySplit::save {} {
     # Get the destination file
     set outputFile [tk_getSaveFile -defaultextension "tcl" -initialfile "input-energySplit-[clock format [clock seconds] -format %Y%b%d_%H%M%S].tcl" -title "Energy Split - Saving input file..."]
 
-    # Save the input file
-    energySplit::initialProcedure $fragment $outputFile
+    if {$outputFile != ""} {
+        # Save the input file
+        energySplit::initialProcedure $fragment $outputFile
+    }
 }
 
 proc energySplit::saveRun {} {
@@ -190,6 +197,7 @@ proc energySplit::saveRun {} {
     # Get the destination file
     set outputFile [tk_getSaveFile -defaultextension "tcl" -initialfile "input-energySplit-[clock format [clock seconds] -format %Y%b%d_%H%M%S].tcl" -title "Energy Split - Saving input file..."]
     
+    if {$outputFile != ""} {
     # Save the input file
     energySplit::initialProcedure $fragment "$outputFile"
 
@@ -198,4 +206,5 @@ proc energySplit::saveRun {} {
     exec tclsh $::energySplitpath/energySplitCalculation.tcl "$outputFile"
  
     tk_messageBox -icon info -type ok -title "Energy Split" -message "The calculation finished successfully.\n\nOutput:\n[file rootname [file normalize ${outputFile}]]_OUTPUT.txt"
+    }
 }
