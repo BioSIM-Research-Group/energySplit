@@ -5,3 +5,6 @@ package ifneeded energySplit                        0.1 [list source [file join 
 
 # Main code
 package ifneeded mainEnergySplit                    0.1 [list source [file join $dir/main.tcl]]
+
+# GUI
+package ifneeded guiEnergySplit                    0.1 [list source [file join $dir/gui.tcl]]

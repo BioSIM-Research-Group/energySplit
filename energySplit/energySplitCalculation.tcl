@@ -1,10 +1,10 @@
-source "/scratch/users/hfernandes/BioSIM-repository/energySplit/energySplit/externalLib/linalg.tcl"
+source "[file dirname [file normalize [info script]]]/externalLib/linalg.tcl"
 package require math::linearalgebra
 package require Thread
 
 global colori colorf bondTotalList angleTotalList dihedralTotalList impTotalList vdwTotalList coloumbTotalList
-set colori "\033\[1;33m"
-set colorf "\033\[0m"
+set colori ""
+set colorf ""
 
 proc bond {inputFile outputFile} {
     global colori colorf bondTotalList
@@ -1383,7 +1383,7 @@ proc numberCPUs {} {
 
 ### Start procedure
 set dir [file rootname [file normalize "$argv"]]
-set outputFilePath "${dir}_output[clock format [clock seconds] -format %Y%b%d_%H%M%S].txt"
+set outputFilePath "${dir}_OUTPUT.txt"
 set outputFile [open "$outputFilePath" w]
 
 puts "################################################################################\n### Energy Split\n################################################################################\n### Output\n################################################################################\n"

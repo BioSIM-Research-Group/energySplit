@@ -1,6 +1,6 @@
 package provide mainEnergySplit 0.1
 
-proc energySplit::initialProcedure {listFragments} {
+proc energySplit::initialProcedure {listFragments fileName} {
     set nFragments [llength $listFragments]
 
     # Check if all the fragments are unique. Each atom should belong to a unique fragment. Two fragments cannot include thhe same atom.
@@ -31,11 +31,12 @@ proc energySplit::initialProcedure {listFragments} {
         set a [atomselect top "$frag"]
         lappend fragList [$a get index]
         $a delete
+
     }
 
 
     # Prepare a input file
-    set fileName "input-energySplit-[clock format [clock seconds] -format %Y%b%d_%H%M%S].tcl"
+    #set fileName "input-energySplit-[clock format [clock seconds] -format %Y%b%d_%H%M%S].tcl"
     set inputFile [open "$fileName" w]
 
     # Writting the header of the input file
@@ -58,7 +59,7 @@ proc energySplit::initialProcedure {listFragments} {
     close $inputFile
 
     # Calculation
-    exec tclsh $::energySplitPath/energySplitCalculation.tcl "$fileName"
+    #exec tclsh $::energySplitpath/energySplitCalculation.tcl "$fileName"
 }
 
 proc energySplit::connectivityFromVMD {numberAtoms} {

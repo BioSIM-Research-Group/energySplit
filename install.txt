@@ -1,0 +1,6 @@
+####vmdStore#### START energySplit
+## Version XXversionXX
+variable energySplitpath none
+lappend auto_path $::energySplitpath
+vmd_install_extension energySplit "energySplit::start" "VMD Store/Energy Split" 
+####vmdStore#### END energySplit
