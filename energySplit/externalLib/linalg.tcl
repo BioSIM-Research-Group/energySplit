@@ -188,7 +188,9 @@ proc ::math::linearalgebra::angle { vect1 vect2 } {
         return -code error "Angle not defined for null vector"
     }
 
-    return [expr {acos($dp/$n1/$n2)}]
+    set var [format %.9f [expr $dp/$n1/$n2]]
+
+    return [expr acos($var)]
 }
 
 
