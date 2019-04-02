@@ -1159,7 +1159,9 @@ proc nonbond {inputFile outputFile} {
 
 
    set coloumbFinal {}
-   unset a b c
+   set a ""
+   set b ""
+   set c ""
    foreach line $coloumbList {
         set a [lindex $line 0]
 
