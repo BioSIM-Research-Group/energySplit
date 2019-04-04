@@ -717,10 +717,10 @@ proc impropers {inputFile outputFile} {
 
             set energy [expr ($mag * (1 - cos($period*(($omega-$po)*($pi/180))))) / 627.50947415151515]
 
-            set logic0 [lsearch $fragList $index0]
-            set logic1 [lsearch $fragList $index1]
-            set logic2 [lsearch $fragList $index2]
-            set logic3 [lsearch $fragList $index3]
+            set logic0 [lsearch -all -regexp $fragList "(^| )${index0}($| )"]
+            set logic1 [lsearch -all -regexp $fragList "(^| )${index1}($| )"]
+            set logic2 [lsearch -all -regexp $fragList "(^| )${index2}($| )"]
+            set logic3 [lsearch -all -regexp $fragList "(^| )${index3}($| )"]
             
             if {$logic0 == $logic1 && $logic1 == $logic2 && $logic2 == $logic3} {
                 # Atoms belong to the same fragmennt
@@ -777,8 +777,8 @@ proc impropers {inputFile outputFile} {
             }
 
         } else {
-            puts "/!\\ Missing parameter for improper $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
-            puts $outputFile "/!\\ Missing parameter for improper $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
+            puts "/!\\ WARNING /!\\ Missing parameter for improper $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
+            puts $outputFile "/!\\ WARNING /!\\ Missing parameter for improper $type0-$type1-$type2-$type3 (indexes $index0 $index1 $index2 $index3)"
         }
 
     }
