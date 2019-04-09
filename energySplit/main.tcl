@@ -403,7 +403,7 @@ proc energySplit::loadPrmtop {} {
 }
 
 proc energySplit::prmtopGetDataFromFlag {flag path} {
-    catch {exec $molUP::grep -n "%FLAG" $path} listFlagLines
+    catch {exec $energySplit::grep -n "%FLAG" $path} listFlagLines
 
     set listFlagLines [split $listFlagLines "\n"]
     
