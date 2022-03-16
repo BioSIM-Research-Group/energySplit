@@ -38,3 +38,6 @@ tclsh energySplitPath/energySplitCalculation.tcl inputfile.tcl
 
 **Example of an output file**
 ![Image3](Screenshots/image3.gif)
+
+## Contacts
+If you have any suggestion of new features, please contact us: hfernandes@med.up.pt
