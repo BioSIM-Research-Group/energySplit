@@ -1,5 +1,8 @@
 # Introduction
 The energySplit is a VMD plugin that splits any molecular system and calculates the energy of each fragment using Molecular Mechanics (AMBER).
+![Image1](Screenshots/image1.gif)
+![Image2](Screenshots/image2.gif)
+![Image3](Screenshots/image3.gif)
 
 ## Minimum Requirements
 
