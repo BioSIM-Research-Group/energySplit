@@ -14,6 +14,11 @@ Tcl 8.5 or later
 
 ## Installation
 
+**Automatic Installation**
+
+You could easily install molUP through [vmdStore](https://github.com/BioSIM-Research-Group/vmdStore).
+
+
 **Manual Installation**
 1. Download the latest release [Download](https://github.com/henriquefer/energySplit/releases/latest).
 2. Copy the directory to a location on you computer. (Grab that location!)
