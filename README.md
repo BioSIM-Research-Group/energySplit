@@ -18,7 +18,7 @@ Tcl 8.5 or later
 1. Download the latest release [Download](https://github.com/henriquefer/energySplit/releases/latest).
 2. Copy the directory to a location on you computer. (Grab that location!)
 3. Copy the text inside "install.txt" file and paste on your .vmdrc file (macOS and Linux ) or vmd.rc file (Windows).
-4. Replace the string "none" by your installation location (Step 2).
+4. Replace the string "$::vmdStorePath/plugins/energySplit" by your installation location (Step 2).
 5. Save the .vmdrc or vmd.rc file.
 6. Restart VMD.
 
